@@ -24,11 +24,11 @@ public class Controller {
     @PostMapping("/")
     @ResponseBody
     public Order orderPlacementHandler(@RequestBody OrderRequestBody request) {
-        if (request.getUserId().equals("")) {
+        if (request.getUserId() == 0) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST, "user id must be supplied");
         }
-        String userId = request.getUserId();
+        Long userId = request.getUserId();
         com.streets.ordersvc.dao.models.Order d = new com.streets.ordersvc.dao.models.Order();
         d.setQuantity(request.getQuantity());
         d.setPrice(request.getPrice());
@@ -44,6 +44,7 @@ public class Controller {
         }
 
     }
+
     @GetMapping("/{id}")
     @ResponseBody
     public Order getOrderHandler(@PathVariable Long id) {

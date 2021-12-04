@@ -17,6 +17,6 @@ public class OrderRequestBody {
     private String side;
 
     @JsonAlias({"userId", "user_id"})
-    private String userId;
+    private Long userId;
 
 }
