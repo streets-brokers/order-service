@@ -4,12 +4,16 @@ import com.streets.ordersvc.common.enums.OrderStatus;
 import com.streets.ordersvc.common.enums.Side;
 import com.streets.ordersvc.common.types.Tuple2;
 import com.streets.ordersvc.communication.internal.mds.MarketDataAPICommHandler;
+import com.streets.ordersvc.communication.outbound.OrderAPICommHandler;
+import com.streets.ordersvc.communication.requests.OrderRequestBody;
 import com.streets.ordersvc.communication.responses.ExchangeDataPayload;
 import com.streets.ordersvc.dao.models.Leg;
 import com.streets.ordersvc.dao.models.Order;
+import com.streets.ordersvc.dao.repositories.LegRepository;
 import com.streets.ordersvc.dao.repositories.OrderRepository;
 import com.streets.ordersvc.processing.scan.PriceQuantityScanningService;
 import com.streets.ordersvc.processing.scan.ScanResult;
+import com.streets.ordersvc.utils.PropertiesReader;
 import com.streets.ordersvc.validation.services.ValidationServiceImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +28,8 @@ import java.util.*;
 @Service
 public class OrderService {
     private static final Logger LOGGER = LoggerFactory.getLogger(OrderService.class);
-    private final OrderRepository repository;
+    private final OrderRepository orderRepository;
+    private final LegRepository legRepository;
 
     private final String[] xs = {"EXCHANGE1", "EXCHANGE2"};
 
@@ -35,8 +40,9 @@ public class OrderService {
     private final PriceQuantityScanningService priceScanner;
 
     @Autowired
-    public OrderService(OrderRepository repository, ValidationServiceImpl validationService, PriceQuantityScanningService priceScanner) {
-        this.repository = repository;
+    public OrderService(OrderRepository repository, LegRepository legRepository, ValidationServiceImpl validationService, PriceQuantityScanningService priceScanner) {
+        this.orderRepository = repository;
+        this.legRepository = legRepository;
         this.validationService = validationService;
         this.priceScanner = priceScanner;
     }
@@ -88,7 +94,7 @@ public class OrderService {
         d.setStatus(OrderStatus.PENDING);
 
         // save the order to get and ID
-        this.repository.save(d);
+        this.orderRepository.save(d);
 
         Side side = Side.valueOf(d.getSide());
         Integer totalQuantity = d.getQuantity();
@@ -125,12 +131,21 @@ public class OrderService {
             }
         }
         d.setLegs(orderLegs);
-        this.repository.save(d);
+        this.orderRepository.save(d);
+
+        // Now go ahead and place the orders
+        // TODO: parallelize this shit
+        for (Leg leg : d.getLegs()) {
+            OrderRequestBody body = new OrderRequestBody(leg.getProduct(), leg.getQuantity(), leg.getPrice(), leg.getSide());
+            String xid = OrderAPICommHandler.placeOrder(PropertiesReader.getProperty(leg.getXchange() + "_BASE_URL"), body);
+            leg.setXid(xid);
+            this.legRepository.save(leg);
+        }
         return d;
     }
 
     public Order getOrderById(Long id) {
-        Optional<Order> d = this.repository.findById(id);
+        Optional<Order> d = this.orderRepository.findById(id);
         if (d.isPresent()) {
             return d.get();
         } else {
@@ -140,6 +155,6 @@ public class OrderService {
     }
 
     public List<Order> listUserOrders(Long id) {
-        return  this.repository.findByClientId(id);
+        return this.orderRepository.findByClientId(id);
     }
 }
