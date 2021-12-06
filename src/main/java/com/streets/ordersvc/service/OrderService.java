@@ -11,7 +11,7 @@ import com.streets.ordersvc.dao.models.Leg;
 import com.streets.ordersvc.dao.models.Order;
 import com.streets.ordersvc.dao.repositories.LegRepository;
 import com.streets.ordersvc.dao.repositories.OrderRepository;
-import com.streets.ordersvc.processing.scan.PriceQuantityScanningService;
+import com.streets.ordersvc.processing.scan.PriceQuantityScanner;
 import com.streets.ordersvc.processing.scan.ScanResult;
 import com.streets.ordersvc.utils.PropertiesReader;
 import com.streets.ordersvc.validation.services.ValidationServiceImpl;
@@ -37,70 +37,70 @@ public class OrderService {
     private final ValidationServiceImpl validationService;
 
 
-    private final PriceQuantityScanningService priceScanner;
+    private final PriceQuantityScanner priceScanner;
 
     @Autowired
-    public OrderService(OrderRepository repository, LegRepository legRepository, ValidationServiceImpl validationService, PriceQuantityScanningService priceScanner) {
+    public OrderService(OrderRepository repository, LegRepository legRepository, ValidationServiceImpl validationService, PriceQuantityScanner priceScanner) {
         this.orderRepository = repository;
         this.legRepository = legRepository;
         this.validationService = validationService;
         this.priceScanner = priceScanner;
     }
 
-    public Order placeOrder(Order d) {
+    public Order placeOrder(Order clientOrder) {
         // TODO: make a request to the market data service to get the current market price
         List<ExchangeDataPayload> prices;
         try {
-            prices = Arrays.asList(MarketDataAPICommHandler.getMarketDataByProduct(d.getProduct()));
+            prices = Arrays.asList(MarketDataAPICommHandler.getMarketDataByProduct(clientOrder.getProduct()));
         } catch (RestClientException e) {
             throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "prices could not be found for the product: " + d.getProduct() + " due to " + e.getMessage());
+                    HttpStatus.NOT_FOUND, "prices could not be found for the product: " + clientOrder.getProduct() + " due to " + e.getMessage());
         }
 
         if (prices.size() == 0) {
             throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "prices could not be found for the product: " + d.getProduct());
+                    HttpStatus.NOT_FOUND, "prices could not be found for the product: " + clientOrder.getProduct());
         }
 
 
         // validate amount
-        Tuple2<Boolean, String> amountValidationResult = validationService.isValidAmount(d);
+        Tuple2<Boolean, String> amountValidationResult = validationService.isValidAmount(clientOrder);
         if (!amountValidationResult.getIsValid()) {
             throw new ResponseStatusException(
                     HttpStatus.PRECONDITION_FAILED, amountValidationResult.getMsg());
         }
 
         // validate quantity
-        Tuple2<Boolean, String> quantityValidationResult = validationService.isValidQuantity(d);
+        Tuple2<Boolean, String> quantityValidationResult = validationService.isValidQuantity(clientOrder);
         if (!quantityValidationResult.getIsValid()) {
             throw new ResponseStatusException(
                     HttpStatus.PRECONDITION_FAILED, quantityValidationResult.getMsg());
         }
 
         // validate rate
-        Tuple2<Boolean, String> rateValidationResult = validationService.isValidRate(d);
+        Tuple2<Boolean, String> rateValidationResult = validationService.isValidRate(clientOrder);
         if (!rateValidationResult.getIsValid()) {
             throw new ResponseStatusException(
                     HttpStatus.PRECONDITION_FAILED, rateValidationResult.getMsg());
         }
 
-        if (Objects.equals(d.getSide(), Side.BUY.toString())) {
+        if (clientOrder.getSide().equals(Side.BUY.toString())) {
             prices.sort(Comparator.comparingDouble(ExchangeDataPayload::getBidPrice));
-            d.setMarketPrice(prices.get(0).getBidPrice());
-        } else if (Objects.equals(d.getSide(), Side.SELL.toString())) {
+            clientOrder.setMarketPrice(prices.get(0).getBidPrice());
+        } else if (clientOrder.getSide().equals(Side.SELL.toString())) {
             prices.sort(Comparator.comparingDouble(ExchangeDataPayload::getAskPrice).reversed());
-            d.setMarketPrice(prices.get(0).getAskPrice());
+            clientOrder.setMarketPrice(prices.get(0).getAskPrice());
         }
-        d.setStatus(OrderStatus.PENDING);
+        clientOrder.setStatus(OrderStatus.PENDING);
 
         // save the order to get and ID
-        this.orderRepository.save(d);
+        this.orderRepository.save(clientOrder);
 
-        Side side = Side.valueOf(d.getSide());
-        Integer totalQuantity = d.getQuantity();
+        Side side = Side.valueOf(clientOrder.getSide());
+        Integer totalQuantity = clientOrder.getQuantity();
 
         // go scan the order book and return the result
-        List<ScanResult> results = priceScanner.scanBook(xs, d.getProduct(), side);
+        List<ScanResult> results = priceScanner.scanBook(xs, clientOrder.getProduct(), side);
         if (side == Side.BUY) {
             // sort in ascending order
             results.sort(Comparator.comparingDouble(ScanResult::getMinPrice));
@@ -109,39 +109,58 @@ public class OrderService {
             results.sort(Comparator.comparingDouble(ScanResult::getMaxPrice).reversed());
 
         }
+        results.forEach(System.out::println);
         Set<Leg> orderLegs = new HashSet<>();
         // split till quantity is fulfilled
         for (ScanResult result : results) {
             if (totalQuantity > 0) {
                 Leg leg = new Leg();
-                leg.setProduct(d.getProduct());
-                leg.setSide(d.getSide());
+                leg.setProduct(clientOrder.getProduct());
+                leg.setSide(clientOrder.getSide());
                 leg.setXchange(result.getExchange());
-                leg.setOrder(d);
+                leg.setOrder(clientOrder);
                 leg.setQuantity(Math.min(result.getQuantity(), totalQuantity));
                 totalQuantity -= leg.getQuantity();
+                leg.setMarketPrice(clientOrder.getMarketPrice());
                 // pick the minimum between the market price and the lowest price from the open orders
-                if (Objects.equals(leg.getSide(), Side.BUY.toString())) {
-                    leg.setPrice(Math.min(result.getMinPrice(), d.getMarketPrice()));
+                if (leg.getSide().equals(Side.BUY.toString())) {
+                    leg.setPrice(Math.min(clientOrder.getPrice(), clientOrder.getMarketPrice()));
+                    LOGGER.info("Buying at: " + leg.getPrice() + " at a market price of: " + clientOrder.getMarketPrice());
                 } else {
                     // pick the max between the market price and the highest price from the open orders
-                    leg.setPrice(Math.max(result.getMaxPrice(), d.getMarketPrice()));
+                    leg.setPrice(Math.max(clientOrder.getPrice(), clientOrder.getMarketPrice()));
+                    LOGGER.info("Selling at: " + leg.getPrice() + " at a market price of: " + clientOrder.getMarketPrice());
                 }
                 orderLegs.add(leg);
             }
         }
-        d.setLegs(orderLegs);
-        this.orderRepository.save(d);
-
         // Now go ahead and place the orders
         // TODO: parallelize this shit
-        for (Leg leg : d.getLegs()) {
+        for (Leg leg : orderLegs) {
             OrderRequestBody body = new OrderRequestBody(leg.getProduct(), leg.getQuantity(), leg.getPrice(), leg.getSide());
             String xid = OrderAPICommHandler.placeOrder(PropertiesReader.getProperty(leg.getXchange() + "_BASE_URL"), body);
-            leg.setXid(xid);
-            this.legRepository.save(leg);
+            if (xid != null) {
+                leg.setXid(xid.replaceAll("^\"|\"$", ""));
+                leg.setStatus(OrderStatus.EXECUTING);
+                this.legRepository.save(leg);
+            }
+
+
         }
-        return d;
+        clientOrder.setLegs(orderLegs);
+        boolean isExecuting = false;
+        for (Leg leg : clientOrder.getLegs()) {
+            if (leg.getStatus() == OrderStatus.EXECUTING) {
+                isExecuting = true;
+                break;
+            }
+        }
+        if (isExecuting) {
+            clientOrder.setStatus(OrderStatus.EXECUTING);
+        }
+        this.orderRepository.save(clientOrder);
+        Optional<Order> savedOrder = this.orderRepository.findById(clientOrder.getId());
+        return savedOrder.orElse(null);
     }
 
     public Order getOrderById(Long id) {

@@ -8,6 +8,9 @@ public class FullOrderBook {
     @JsonAlias({"FULLORDERBOOK", "fullOrderBook"})
     private List<OrderBookItem> fullOrderBook;
 
+    public FullOrderBook() {
+    }
+
     public FullOrderBook(List<OrderBookItem> fullOrderBook) {
         this.fullOrderBook = fullOrderBook;
     }

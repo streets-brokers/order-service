@@ -24,7 +24,7 @@ public class Controller {
     @PostMapping("/")
     @ResponseBody
     public Order orderPlacementHandler(@RequestBody OrderRequestBody request) {
-        if (request.getUserId() == 0) {
+        if (request.getUserId() == null || request.getUserId() == 0) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST, "user id must be supplied");
         }

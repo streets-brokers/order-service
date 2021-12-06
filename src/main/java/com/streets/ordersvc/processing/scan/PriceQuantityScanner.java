@@ -15,74 +15,75 @@ import java.util.OptionalDouble;
 
 @Service
 // This is for scanning price and quantity of the full order book
-public class PriceQuantityScanningService {
-    private static final Logger LOGGER = LoggerFactory.getLogger(PriceQuantityScanningService.class);
+public class PriceQuantityScanner {
+    private static final Logger LOGGER = LoggerFactory.getLogger(PriceQuantityScanner.class);
 
-    public List<ScanResult> scanBook(String[] xs, String product, Side side) {
+    public List<ScanResult> scanBook(String[] exchangeNames, String product, Side side) {
         if (side == Side.BUY) {
-            return scanBuys(xs, product);
+            return scanSells(exchangeNames, product);
         } else {
-            return scanSells(xs, product);
+            return scanBuys(exchangeNames, product);
         }
     }
 
-    private List<ScanResult> scanBuys(String[] xs, String product) {
+    private List<ScanResult> scanBuys(String[] exchangeNames, String product) {
         List<ScanResult> scans = new ArrayList<>();
 
         // TODO:(romeo) parallelize the shit outta this
-        for (String xk : xs) {
-            String baseURL = PropertiesReader.getProperty(xk + "_BASE_URL");
+        for (String exchangeName : exchangeNames) {
+            String baseURL = PropertiesReader.getProperty(exchangeName + "_BASE_URL");
             FullOrderBook book = OrderAPICommHandler.getBuyOpenedOrderBookByProduct(baseURL, product);
 
-            ScanResult d = new ScanResult();
-            d.setSide(Side.BUY.toString());
-            d.setExchange(xk);
+            ScanResult scanResult = new ScanResult();
+            scanResult.setSide(Side.BUY.toString());
+            scanResult.setExchange(exchangeName);
+            scanResult.setProduct(product);
 
-            d.setQuantity(calculateAvailableQuantity(book));
+            scanResult.setQuantity(calculateAvailableQuantity(book));
 
             // gets the max price the product is selling at
             OptionalDouble maxp = maxPrice(book);
             if (maxp.isPresent()) {
-                d.setMaxPrice(maxp.getAsDouble());
+                scanResult.setMaxPrice(maxp.getAsDouble());
             }
 
             OptionalDouble minp = minPrice(book);
             if (minp.isPresent()) {
-                d.setMinPrice(minp.getAsDouble());
+                scanResult.setMinPrice(minp.getAsDouble());
             }
 
-            scans.add(d);
+            scans.add(scanResult);
         }
 
         return scans;
     }
 
-    private List<ScanResult> scanSells(String[] xs, String product) {
+    private List<ScanResult> scanSells(String[] exchangeNames, String product) {
         List<ScanResult> scans = new ArrayList<>();
 
         // TODO:(romeo) parallelize the shit outta this
-        for (String xk : xs) {
-            String baseURL = PropertiesReader.getProperty(xk + "_BASE_URL");
+        for (String exchangeName : exchangeNames) {
+            String baseURL = PropertiesReader.getProperty(exchangeName + "_BASE_URL");
             FullOrderBook book = OrderAPICommHandler.getSellOpenedOrderBookByProduct(baseURL, product);
 
-            ScanResult d = new ScanResult();
-            d.setSide(Side.SELL.toString());
-            d.setExchange(xk);
-
-            d.setQuantity(calculateAvailableQuantity(book));
+            ScanResult scanResult = new ScanResult();
+            scanResult.setSide(Side.SELL.toString());
+            scanResult.setExchange(exchangeName);
+            scanResult.setProduct(product);
+            scanResult.setQuantity(calculateAvailableQuantity(book));
 
             // gets the max price the product is selling at
             OptionalDouble maxp = maxPrice(book);
             if (maxp.isPresent()) {
-                d.setMaxPrice(maxp.getAsDouble());
+                scanResult.setMaxPrice(maxp.getAsDouble());
             }
 
             OptionalDouble minp = minPrice(book);
             if (minp.isPresent()) {
-                d.setMinPrice(minp.getAsDouble());
+                scanResult.setMinPrice(minp.getAsDouble());
             }
 
-            scans.add(d);
+            scans.add(scanResult);
         }
         return scans;
     }

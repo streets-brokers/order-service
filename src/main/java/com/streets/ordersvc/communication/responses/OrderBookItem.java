@@ -15,10 +15,24 @@ public class OrderBookItem {
     @JsonAlias({"QUANTITY", "quantity"})
     private Integer quantity;
 
-    @JsonAlias({"CUMULATIVEQUANTITY", "cumulativeQuantity"})
+    @JsonAlias({"CUMULATITIVEQUANTITY", "cumulatitiveQuantity"})
     private Integer cumulativeQuantity;
     @JsonAlias({"EXECUTIONS", "executions"})
     private List<Execution> executions;
+
+    @Override
+    public String toString() {
+        return "OrderBookItem{" +
+                "product='" + product + '\'' +
+                ", price=" + price +
+                ", side='" + side + '\'' +
+                ", quantity=" + quantity +
+                ", cumulativeQuantity=" + cumulativeQuantity +
+                ", executions=" + executions +
+                '}' + '\n';
+    }
+
+    public OrderBookItem() {}
 
     public OrderBookItem(String product, Double price, String side, Integer quantity, Integer cumulativeQuantity, List<Execution> executions) {
         this.product = product;

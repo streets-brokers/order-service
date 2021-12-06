@@ -10,6 +10,9 @@ public class Execution {
     @JsonAlias({"QUANTITY", "quantity"})
     private Integer quantity;
 
+    public Execution() {
+    }
+
     public Execution(String timestamp, Double price, Integer quantity) {
         this.timestamp = timestamp;
         this.price = price;

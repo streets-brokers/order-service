@@ -12,9 +12,10 @@ import org.springframework.stereotype.Service;
 public class ValidationServiceImpl implements ValidationService {
     private static final Logger LOGGER = LoggerFactory.getLogger(ValidationServiceImpl.class);
 
-    @Autowired
+
     private final CommunicationServiceImpl communicationService;
 
+    @Autowired
     public ValidationServiceImpl(CommunicationServiceImpl communicationService) {
         this.communicationService = communicationService;
     }
@@ -28,12 +29,14 @@ public class ValidationServiceImpl implements ValidationService {
      */
     @Override
     public Tuple2<Boolean, String> isValidAmount(Order order) {
-        return null;
+
+
+        return new Tuple2<>(true, "");
     }
 
     @Override
     public Tuple2<Boolean, String> isValidQuantity(Order order) {
-        return null;
+        return new Tuple2<>(true, "");
     }
 
     /**
@@ -46,11 +49,12 @@ public class ValidationServiceImpl implements ValidationService {
      */
     @Override
     public Tuple2<Boolean, String> isValidRate(Order order) {
-        return null;
+        return new Tuple2<>(true, "");
     }
 
     @Override
     public Tuple2<Boolean, String> hasValidScore(Order order) {
-        return null;
+
+        return new Tuple2<>(true, "");
     }
 }

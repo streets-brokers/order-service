@@ -18,6 +18,17 @@ public class ScanResult {
 
     public ScanResult() {}
 
+    @Override
+    public String toString() {
+        return "ScanResult{" +
+                "exchange='" + exchange + '\'' +
+                ", product='" + product + '\'' +
+                ", maxPrice=" + maxPrice +
+                ", minPrice=" + minPrice +
+                ", quantity=" + quantity +
+                ", side='" + side + '\'' +
+                '}' + '\n';
+    }
 
     private String exchange;
     private String product;

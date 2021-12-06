@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -136,7 +137,7 @@ public class OrderAPICommHandler {
         try {
             FullOrderBook[] fullOrderBooks = restTemplate.getForObject(uri, FullOrderBook[].class);
             if (fullOrderBooks != null)
-                return List.of(fullOrderBooks);
+                return Arrays.asList(fullOrderBooks);
             return null;
         } catch (RestClientException e) {
             LOGGER.info("Could not read the order book for: " + uri);
@@ -150,7 +151,8 @@ public class OrderAPICommHandler {
         String uri = baseURL + "/orderbook/" + product;
         LOGGER.info("Reading the order book for: " + product + " from " + uri);
         try {
-            return restTemplate.getForObject(uri, FullOrderBook.class);
+            OrderBookItem[] book = restTemplate.getForObject(uri, OrderBookItem[].class);
+            return  new FullOrderBook(Arrays.asList(book));
         } catch (RestClientException e) {
             LOGGER.info("Could not read the order book for: " + uri);
         } catch (Exception e) {
@@ -161,9 +163,10 @@ public class OrderAPICommHandler {
 
     public static FullOrderBook getOrderBookByProductAndKey(String baseURL, String product, String key) {
         String uri = baseURL + "/orderbook/" + product + "/" + key;
-        LOGGER.info("Reading the order book for: " + product + " from " + uri + "with  key: " + key);
+        LOGGER.info("Reading the order book for: " + product + " from " + uri + " with  key: " + key);
         try {
-            return restTemplate.getForObject(uri, FullOrderBook.class);
+            OrderBookItem[] book = restTemplate.getForObject(uri, OrderBookItem[].class);
+            return  new FullOrderBook(Arrays.asList(book));
         } catch (RestClientException e) {
             LOGGER.info("Could not read the order book for: " + uri);
         } catch (Exception e) {
