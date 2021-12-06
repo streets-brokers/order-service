@@ -7,6 +7,7 @@ import com.streets.ordersvc.common.enums.Side;
 import com.streets.ordersvc.utils.PropertiesReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -20,7 +21,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-@Service
 public class OrderAPICommHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(OrderAPICommHandler.class);
     private static final RestTemplate restTemplate = new RestTemplate();

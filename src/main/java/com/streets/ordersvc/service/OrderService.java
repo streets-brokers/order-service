@@ -173,6 +173,10 @@ public class OrderService {
         }
     }
 
+    public List<Leg> getOrderLegs(Long id) {
+        return this.legRepository.findByOrderId(id);
+    }
+
     public List<Order> listUserOrders(Long id) {
         return this.orderRepository.findByClientId(id);
     }

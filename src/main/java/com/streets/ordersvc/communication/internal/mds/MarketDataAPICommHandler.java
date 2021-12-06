@@ -12,7 +12,7 @@ import org.springframework.web.client.RestTemplate;
 import java.util.List;
 
 
-@Service
+
 public class MarketDataAPICommHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(MarketDataAPICommHandler.class);
     private static final RestTemplate restTemplate = new RestTemplate();
