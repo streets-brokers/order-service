@@ -1,4 +1,4 @@
-package com.streets.ordersvc.processing.scan;
+package com.streets.ordersvc.processing.strategy.results;
 
 
 import lombok.Getter;
@@ -6,8 +6,8 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class ScanResult {
-    public ScanResult(String exchange, String product, Double maxPrice, Double minPrice, Integer quantity, String side) {
+public class PQAnalysisResult {
+    public PQAnalysisResult(String exchange, String product, Double maxPrice, Double minPrice, Integer quantity, String side) {
         this.exchange = exchange;
         this.product = product;
         this.maxPrice = maxPrice;
@@ -16,7 +16,7 @@ public class ScanResult {
         this.side = side;
     }
 
-    public ScanResult() {}
+    public PQAnalysisResult() {}
 
     @Override
     public String toString() {

@@ -11,8 +11,9 @@ import com.streets.ordersvc.dao.models.Leg;
 import com.streets.ordersvc.dao.models.Order;
 import com.streets.ordersvc.dao.repositories.LegRepository;
 import com.streets.ordersvc.dao.repositories.OrderRepository;
-import com.streets.ordersvc.processing.scan.PriceQuantityScanner;
-import com.streets.ordersvc.processing.scan.ScanResult;
+import com.streets.ordersvc.processing.strategy.analyzers.PQAnalyzer;
+import com.streets.ordersvc.processing.strategy.analyzers.TrendAnalyzer;
+import com.streets.ordersvc.processing.strategy.results.PQAnalysisResult;
 import com.streets.ordersvc.utils.PropertiesReader;
 import com.streets.ordersvc.validation.services.ValidationServiceImpl;
 import org.slf4j.Logger;
@@ -30,6 +31,7 @@ public class OrderService {
     private static final Logger LOGGER = LoggerFactory.getLogger(OrderService.class);
     private final OrderRepository orderRepository;
     private final LegRepository legRepository;
+    private final OrderAPICommHandler orderAPICommHandler;
 
     private final String[] xs = {"EXCHANGE1", "EXCHANGE2"};
 
@@ -37,14 +39,17 @@ public class OrderService {
     private final ValidationServiceImpl validationService;
 
 
-    private final PriceQuantityScanner priceScanner;
+    private final PQAnalyzer pqAnalyzer;
+    private final TrendAnalyzer trendAnalyzer;
 
     @Autowired
-    public OrderService(OrderRepository repository, LegRepository legRepository, ValidationServiceImpl validationService, PriceQuantityScanner priceScanner) {
+    public OrderService(OrderRepository repository, LegRepository legRepository, OrderAPICommHandler orderAPICommHandler, ValidationServiceImpl validationService, PQAnalyzer pqAnalyzer, TrendAnalyzer trendAnalyzer) {
         this.orderRepository = repository;
         this.legRepository = legRepository;
+        this.orderAPICommHandler = orderAPICommHandler;
         this.validationService = validationService;
-        this.priceScanner = priceScanner;
+        this.pqAnalyzer = pqAnalyzer;
+        this.trendAnalyzer = trendAnalyzer;
     }
 
     public Order placeOrder(Order clientOrder) {
@@ -100,19 +105,19 @@ public class OrderService {
         Integer totalQuantity = clientOrder.getQuantity();
 
         // go scan the order book and return the result
-        List<ScanResult> results = priceScanner.scanBook(xs, clientOrder.getProduct(), side);
+        List<PQAnalysisResult> results = pqAnalyzer.analyze(xs, clientOrder.getProduct(), side);
         if (side == Side.BUY) {
             // sort in ascending order
-            results.sort(Comparator.comparingDouble(ScanResult::getMinPrice));
+            results.sort(Comparator.comparingDouble(PQAnalysisResult::getMinPrice));
         } else {
             // sort in descending order
-            results.sort(Comparator.comparingDouble(ScanResult::getMaxPrice).reversed());
+            results.sort(Comparator.comparingDouble(PQAnalysisResult::getMaxPrice).reversed());
 
         }
         results.forEach(System.out::println);
         Set<Leg> orderLegs = new HashSet<>();
         // split till quantity is fulfilled
-        for (ScanResult result : results) {
+        for (PQAnalysisResult result : results) {
             if (totalQuantity > 0) {
                 Leg leg = new Leg();
                 leg.setProduct(clientOrder.getProduct());
@@ -138,14 +143,12 @@ public class OrderService {
         // TODO: parallelize this shit
         for (Leg leg : orderLegs) {
             OrderRequestBody body = new OrderRequestBody(leg.getProduct(), leg.getQuantity(), leg.getPrice(), leg.getSide());
-            String xid = OrderAPICommHandler.placeOrder(PropertiesReader.getProperty(leg.getXchange() + "_BASE_URL"), body);
+            String xid = orderAPICommHandler.placeOrder(PropertiesReader.getProperty(leg.getXchange() + "_BASE_URL"), body);
             if (xid != null) {
                 leg.setXid(xid.replaceAll("^\"|\"$", ""));
                 leg.setStatus(OrderStatus.EXECUTING);
                 this.legRepository.save(leg);
             }
-
-
         }
         clientOrder.setLegs(orderLegs);
         boolean isExecuting = false;
@@ -171,6 +174,10 @@ public class OrderService {
             throw new ResponseStatusException(
                     HttpStatus.NOT_FOUND, "no order exists with id: " + id);
         }
+    }
+
+    public List<Leg> getOrderLegs(Long id) {
+        return this.legRepository.findByOrderId(id);
     }
 
     public List<Order> listUserOrders(Long id) {
