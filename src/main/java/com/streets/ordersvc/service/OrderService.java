@@ -11,8 +11,9 @@ import com.streets.ordersvc.dao.models.Leg;
 import com.streets.ordersvc.dao.models.Order;
 import com.streets.ordersvc.dao.repositories.LegRepository;
 import com.streets.ordersvc.dao.repositories.OrderRepository;
-import com.streets.ordersvc.processing.scan.PriceQuantityScanner;
-import com.streets.ordersvc.processing.scan.ScanResult;
+import com.streets.ordersvc.processing.strategy.analyzers.PQAnalyzer;
+import com.streets.ordersvc.processing.strategy.analyzers.TrendAnalyzer;
+import com.streets.ordersvc.processing.strategy.results.PQAnalysisResult;
 import com.streets.ordersvc.utils.PropertiesReader;
 import com.streets.ordersvc.validation.services.ValidationServiceImpl;
 import org.slf4j.Logger;
@@ -38,15 +39,17 @@ public class OrderService {
     private final ValidationServiceImpl validationService;
 
 
-    private final PriceQuantityScanner priceScanner;
+    private final PQAnalyzer pqAnalyzer;
+    private final TrendAnalyzer trendAnalyzer;
 
     @Autowired
-    public OrderService(OrderRepository repository, LegRepository legRepository, OrderAPICommHandler orderAPICommHandler, ValidationServiceImpl validationService, PriceQuantityScanner priceScanner) {
+    public OrderService(OrderRepository repository, LegRepository legRepository, OrderAPICommHandler orderAPICommHandler, ValidationServiceImpl validationService, PQAnalyzer pqAnalyzer, TrendAnalyzer trendAnalyzer) {
         this.orderRepository = repository;
         this.legRepository = legRepository;
         this.orderAPICommHandler = orderAPICommHandler;
         this.validationService = validationService;
-        this.priceScanner = priceScanner;
+        this.pqAnalyzer = pqAnalyzer;
+        this.trendAnalyzer = trendAnalyzer;
     }
 
     public Order placeOrder(Order clientOrder) {
@@ -102,19 +105,19 @@ public class OrderService {
         Integer totalQuantity = clientOrder.getQuantity();
 
         // go scan the order book and return the result
-        List<ScanResult> results = priceScanner.scanBook(xs, clientOrder.getProduct(), side);
+        List<PQAnalysisResult> results = pqAnalyzer.analyze(xs, clientOrder.getProduct(), side);
         if (side == Side.BUY) {
             // sort in ascending order
-            results.sort(Comparator.comparingDouble(ScanResult::getMinPrice));
+            results.sort(Comparator.comparingDouble(PQAnalysisResult::getMinPrice));
         } else {
             // sort in descending order
-            results.sort(Comparator.comparingDouble(ScanResult::getMaxPrice).reversed());
+            results.sort(Comparator.comparingDouble(PQAnalysisResult::getMaxPrice).reversed());
 
         }
         results.forEach(System.out::println);
         Set<Leg> orderLegs = new HashSet<>();
         // split till quantity is fulfilled
-        for (ScanResult result : results) {
+        for (PQAnalysisResult result : results) {
             if (totalQuantity > 0) {
                 Leg leg = new Leg();
                 leg.setProduct(clientOrder.getProduct());
