@@ -18,7 +18,7 @@ public class MarketDataAPICommHandler {
     private static final RestTemplate restTemplate = new RestTemplate();
 
     public static ExchangeDataPayload[] getMarketDataByProduct(String product) {
-        String uri = PropertiesReader.getProperty("MARKET_DATA_SERVICE_URL") + "/market/products/" + product;
+        String uri = PropertiesReader.getProperty("MARKET_DATA_SERVICE_URL") + "/products/" + product;
         LOGGER.info("Going to get the market data for product: ");
         try {
             return restTemplate.getForObject(uri, ExchangeDataPayload[].class);
