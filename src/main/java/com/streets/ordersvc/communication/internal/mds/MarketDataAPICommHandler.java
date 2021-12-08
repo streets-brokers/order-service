@@ -32,7 +32,7 @@ public class MarketDataAPICommHandler {
     }
 
     public static String[] getMarketProducts() {
-        String uri = PropertiesReader.getProperty("MARKET_DATA_SERVICE_URL") + "/market/products/tickers";
+        String uri = PropertiesReader.getProperty("MARKET_DATA_SERVICE_URL") + "/products/tickers";
         LOGGER.info("loading product tickers: ");
         try {
             return restTemplate.getForObject(uri, String[].class);
