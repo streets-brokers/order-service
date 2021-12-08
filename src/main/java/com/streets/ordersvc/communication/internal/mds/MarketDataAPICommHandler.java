@@ -31,5 +31,19 @@ public class MarketDataAPICommHandler {
         }
     }
 
+    public static String[] getMarketProducts() {
+        String uri = PropertiesReader.getProperty("MARKET_DATA_SERVICE_URL") + "/market/products/tickers";
+        LOGGER.info("loading product tickers: ");
+        try {
+            return restTemplate.getForObject(uri, String[].class);
+        } catch (RestClientException e) {
+            LOGGER.info("Could not load the products:");
+            throw new RestClientException(e.getMessage());
+        } catch (Exception e) {
+            LOGGER.info(e.getMessage());
+            throw new RestClientException(e.getMessage());
+        }
+    }
+
 
 }

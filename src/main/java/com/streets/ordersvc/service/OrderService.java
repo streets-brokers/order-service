@@ -30,6 +30,7 @@ public class OrderService {
     private static final Logger LOGGER = LoggerFactory.getLogger(OrderService.class);
     private final OrderRepository orderRepository;
     private final LegRepository legRepository;
+    private final OrderAPICommHandler orderAPICommHandler;
 
     private final String[] xs = {"EXCHANGE1", "EXCHANGE2"};
 
@@ -40,9 +41,10 @@ public class OrderService {
     private final PriceQuantityScanner priceScanner;
 
     @Autowired
-    public OrderService(OrderRepository repository, LegRepository legRepository, ValidationServiceImpl validationService, PriceQuantityScanner priceScanner) {
+    public OrderService(OrderRepository repository, LegRepository legRepository, OrderAPICommHandler orderAPICommHandler, ValidationServiceImpl validationService, PriceQuantityScanner priceScanner) {
         this.orderRepository = repository;
         this.legRepository = legRepository;
+        this.orderAPICommHandler = orderAPICommHandler;
         this.validationService = validationService;
         this.priceScanner = priceScanner;
     }
@@ -138,14 +140,12 @@ public class OrderService {
         // TODO: parallelize this shit
         for (Leg leg : orderLegs) {
             OrderRequestBody body = new OrderRequestBody(leg.getProduct(), leg.getQuantity(), leg.getPrice(), leg.getSide());
-            String xid = OrderAPICommHandler.placeOrder(PropertiesReader.getProperty(leg.getXchange() + "_BASE_URL"), body);
+            String xid = orderAPICommHandler.placeOrder(PropertiesReader.getProperty(leg.getXchange() + "_BASE_URL"), body);
             if (xid != null) {
                 leg.setXid(xid.replaceAll("^\"|\"$", ""));
                 leg.setStatus(OrderStatus.EXECUTING);
                 this.legRepository.save(leg);
             }
-
-
         }
         clientOrder.setLegs(orderLegs);
         boolean isExecuting = false;

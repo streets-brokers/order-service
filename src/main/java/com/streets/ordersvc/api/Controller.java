@@ -14,7 +14,7 @@ import java.util.List;
 
 @RestController
 @CrossOrigin("*")
-@RequestMapping("/orders")
+@RequestMapping("/api/v1/orderservice")
 public class Controller {
     private final OrderService service;
 
@@ -24,7 +24,7 @@ public class Controller {
     }
 
 
-    @PostMapping("/")
+    @PostMapping("/orders")
     @ResponseBody
     public Order orderPlacementHandler(@RequestBody OrderRequestBody request) {
         if (request.getUserId() == null || request.getUserId() == 0) {
