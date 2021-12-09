@@ -19,6 +19,8 @@ public class TrendAnalyzer {
     // To know the price movement, it makes sense to examine
     // the executions and the market data for the particular side
     // Examine the prices over 5 mins interval
+    // Compute the rate of change
+    // Have a threshold for which
     public List<TrendAnalysisResult> analyze(String[] exchanges, String product, Side side) {
         return null;
     }

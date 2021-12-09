@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.server.ResponseStatusException;
@@ -182,5 +183,15 @@ public class OrderService {
 
     public List<Order> listUserOrders(Long id) {
         return this.orderRepository.findByClientId(id);
+    }
+
+    @Scheduled(initialDelay = 100, fixedDelay = 1000)
+    public void pollOrderStatuses() {
+
+    }
+
+    @Scheduled(initialDelay = 100, fixedDelay = 1000)
+    public void processDeferredOrders() {
+
     }
 }
