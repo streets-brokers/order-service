@@ -2,6 +2,7 @@ package com.streets.ordersvc.communication.internal.mds;
 
 import com.streets.ordersvc.communication.responses.ExchangeDataPayload;
 import com.streets.ordersvc.communication.responses.FullOrderBook;
+import com.streets.ordersvc.communication.responses.TrendResult;
 import com.streets.ordersvc.utils.PropertiesReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,7 +11,7 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
-
+import java.util.Map;
 
 
 public class MarketDataAPICommHandler {
@@ -22,6 +23,19 @@ public class MarketDataAPICommHandler {
         LOGGER.info("Going to get the market data for product: ");
         try {
             return restTemplate.getForObject(uri, ExchangeDataPayload[].class);
+        } catch (RestClientException e) {
+            LOGGER.info("Could not get the product data for: " + product);
+            throw new RestClientException(e.getMessage());
+        } catch (Exception e) {
+            LOGGER.info(e.getMessage());
+            throw new RestClientException(e.getMessage());
+        }
+    }
+    public static TrendResult[] getMarketTrendByProduct(String product) {
+        String uri = PropertiesReader.getProperty("MARKET_DATA_SERVICE_URL") + "/trends/" + product;
+        LOGGER.info("Going to get the market data for product: ");
+        try {
+            return restTemplate.getForObject(uri, TrendResult[].class);
         } catch (RestClientException e) {
             LOGGER.info("Could not get the product data for: " + product);
             throw new RestClientException(e.getMessage());

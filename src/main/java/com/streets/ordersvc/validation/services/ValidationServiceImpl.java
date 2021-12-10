@@ -1,7 +1,7 @@
 package com.streets.ordersvc.validation.services;
 
 import com.streets.ordersvc.common.types.Tuple2;
-import com.streets.ordersvc.dao.models.Order;
+import com.streets.ordersvc.common.dao.models.Order;
 import com.streets.ordersvc.validation.commnutication.CommunicationServiceImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 @Service
 public class ValidationServiceImpl implements ValidationService {
     private static final Logger LOGGER = LoggerFactory.getLogger(ValidationServiceImpl.class);
-
 
     private final CommunicationServiceImpl communicationService;
 
@@ -29,7 +28,10 @@ public class ValidationServiceImpl implements ValidationService {
      */
     @Override
     public Tuple2<Boolean, String> isValidAmount(Order order) {
-
+        Double totalBalance = communicationService.getBalance(order.getClientId());
+        if (totalBalance < order.getValue()) {
+            return new Tuple2<>(false, "Not enough funds to fulfill order");
+        }
 
         return new Tuple2<>(true, "");
     }

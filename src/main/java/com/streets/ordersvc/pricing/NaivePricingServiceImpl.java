@@ -1,6 +1,6 @@
 package com.streets.ordersvc.pricing;
 
-import com.streets.ordersvc.dao.models.Order;
+import com.streets.ordersvc.common.dao.models.Order;
 
 public class NaivePricingServiceImpl implements PricingService {
     @Override

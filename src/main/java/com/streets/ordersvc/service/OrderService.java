@@ -7,10 +7,10 @@ import com.streets.ordersvc.communication.internal.mds.MarketDataAPICommHandler;
 import com.streets.ordersvc.communication.outbound.OrderAPICommHandler;
 import com.streets.ordersvc.communication.requests.OrderRequestBody;
 import com.streets.ordersvc.communication.responses.ExchangeDataPayload;
-import com.streets.ordersvc.dao.models.Leg;
-import com.streets.ordersvc.dao.models.Order;
-import com.streets.ordersvc.dao.repositories.LegRepository;
-import com.streets.ordersvc.dao.repositories.OrderRepository;
+import com.streets.ordersvc.common.dao.models.Leg;
+import com.streets.ordersvc.common.dao.models.Order;
+import com.streets.ordersvc.common.dao.repositories.LegRepository;
+import com.streets.ordersvc.common.dao.repositories.OrderRepository;
 import com.streets.ordersvc.processing.strategy.analyzers.PQAnalyzer;
 import com.streets.ordersvc.processing.strategy.analyzers.TrendAnalyzer;
 import com.streets.ordersvc.processing.strategy.results.PQAnalysisResult;
@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.server.ResponseStatusException;
@@ -53,6 +54,7 @@ public class OrderService {
     }
 
     public Order placeOrder(Order clientOrder) {
+        clientOrder.setValue(clientOrder.getPrice() * clientOrder.getQuantity());
         // TODO: make a request to the market data service to get the current market price
         List<ExchangeDataPayload> prices;
         try {
@@ -68,19 +70,24 @@ public class OrderService {
         }
 
 
-        // validate amount
-        Tuple2<Boolean, String> amountValidationResult = validationService.isValidAmount(clientOrder);
-        if (!amountValidationResult.getIsValid()) {
-            throw new ResponseStatusException(
-                    HttpStatus.PRECONDITION_FAILED, amountValidationResult.getMsg());
+        if (clientOrder.getSide().equals(Side.BUY.toString())) {
+            // validate amount
+            Tuple2<Boolean, String> amountValidationResult = validationService.isValidAmount(clientOrder);
+            if (!amountValidationResult.getIsValid()) {
+                throw new ResponseStatusException(
+                        HttpStatus.PRECONDITION_FAILED, amountValidationResult.getMsg());
+            }
         }
 
-        // validate quantity
-        Tuple2<Boolean, String> quantityValidationResult = validationService.isValidQuantity(clientOrder);
-        if (!quantityValidationResult.getIsValid()) {
-            throw new ResponseStatusException(
-                    HttpStatus.PRECONDITION_FAILED, quantityValidationResult.getMsg());
+        if (clientOrder.getSide().equals(Side.SELL.toString())) {
+            // validate quantity
+            Tuple2<Boolean, String> quantityValidationResult = validationService.isValidQuantity(clientOrder);
+            if (!quantityValidationResult.getIsValid()) {
+                throw new ResponseStatusException(
+                        HttpStatus.PRECONDITION_FAILED, quantityValidationResult.getMsg());
+            }
         }
+
 
         // validate rate
         Tuple2<Boolean, String> rateValidationResult = validationService.isValidRate(clientOrder);
@@ -182,5 +189,30 @@ public class OrderService {
 
     public List<Order> listUserOrders(Long id) {
         return this.orderRepository.findByClientId(id);
+    }
+
+    @Scheduled(initialDelay = 100, fixedDelay = 3000)
+    public void pollOrderStatuses() {
+        List<Order> executingOrders = this.orderRepository.getExecutingOrders();
+        executingOrders.forEach((order -> {
+            List<Leg> orderLegs = this.legRepository.findByOrderId(order.getId());
+            orderLegs.forEach(leg -> {
+                try {
+                    orderAPICommHandler.getOrderItemById(PropertiesReader.getProperty(leg.getXchange() + "_BASE_URL"), leg.getXid());
+                } catch (Exception e) {
+                    leg.setStatus(OrderStatus.FULFILLED);
+                }
+            });
+            if (orderLegs.stream().allMatch(x -> x.getStatus() == OrderStatus.FULFILLED)) {
+                order.setStatus(OrderStatus.FULFILLED);
+            }
+            this.orderRepository.save(order);
+            this.legRepository.saveAll(orderLegs);
+        }));
+    }
+
+    @Scheduled(initialDelay = 100, fixedDelay = 1000)
+    public void processDeferredOrders() {
+
     }
 }

@@ -1,7 +1,7 @@
 package com.streets.ordersvc.validation.services;
 
 import com.streets.ordersvc.common.types.Tuple2;
-import com.streets.ordersvc.dao.models.Order;
+import com.streets.ordersvc.common.dao.models.Order;
 import org.springframework.stereotype.Component;
 
 @Component
