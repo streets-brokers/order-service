@@ -8,10 +8,10 @@ import org.springframework.stereotype.Component;
 public interface CommunitcationService {
 
     // Does a remote call to the payment service to get the balance for a client
-    Double getBalance(String clientID);
+    Double getBalance(Long clientID);
 
 
     // Does a remote call to the portfolio service to get the quantity of a
     // particular stock using its ticker symbol
-    Double getStockQuantityByTicker(String clientId, String ticker);
+    Double getStockQuantityByTicker(Long clientId, String ticker);
 }

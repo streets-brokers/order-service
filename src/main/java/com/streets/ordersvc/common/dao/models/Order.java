@@ -1,4 +1,4 @@
-package com.streets.ordersvc.dao.models;
+package com.streets.ordersvc.common.dao.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.streets.ordersvc.common.enums.OrderStatus;

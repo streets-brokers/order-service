@@ -1,7 +1,6 @@
-package com.streets.ordersvc.dao.repositories;
+package com.streets.ordersvc.common.dao.repositories;
 
-import com.streets.ordersvc.dao.models.Leg;
-import com.streets.ordersvc.dao.models.Order;
+import com.streets.ordersvc.common.dao.models.Leg;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 

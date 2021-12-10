@@ -2,8 +2,8 @@ package com.streets.ordersvc.api;
 
 
 import com.streets.ordersvc.api.requests.OrderRequestBody;
-import com.streets.ordersvc.dao.models.Leg;
-import com.streets.ordersvc.dao.models.Order;
+import com.streets.ordersvc.common.dao.models.Leg;
+import com.streets.ordersvc.common.dao.models.Order;
 import com.streets.ordersvc.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -32,7 +32,7 @@ public class Controller {
                     HttpStatus.BAD_REQUEST, "user id must be supplied");
         }
         Long userId = request.getUserId();
-        com.streets.ordersvc.dao.models.Order d = new com.streets.ordersvc.dao.models.Order();
+        Order d = new Order();
         d.setQuantity(request.getQuantity());
         d.setPrice(request.getPrice());
         d.setClientId(request.getUserId());
