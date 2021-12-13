@@ -36,6 +36,8 @@ public class OrderService {
     private final LegRepository legRepository;
     private final OrderAPICommHandler orderAPICommHandler;
     private final RedisMessagePublisher messagePublisher;
+    @Autowired
+    private MarketDataAPICommHandler marketDataAPICommHandler;
 
     private final String[] xs = {"EXCHANGE1", "EXCHANGE2"};
 
@@ -62,7 +64,7 @@ public class OrderService {
         // TODO: make a request to the market data service to get the current market price
         List<ExchangeDataPayload> prices;
         try {
-            prices = Arrays.asList(MarketDataAPICommHandler.getMarketDataByProduct(clientOrder.getProduct()));
+            prices = Arrays.asList( marketDataAPICommHandler.getMarketDataByProduct(clientOrder.getProduct()));
         } catch (RestClientException e) {
             throw new ResponseStatusException(
                     HttpStatus.NOT_FOUND, "prices could not be found for the product: " + clientOrder.getProduct() + " due to " + e.getMessage());

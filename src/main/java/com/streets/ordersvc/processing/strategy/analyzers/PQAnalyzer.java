@@ -23,6 +23,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class PQAnalyzer {
     private static final Logger LOGGER = LoggerFactory.getLogger(PQAnalyzer.class);
     private final OrderAPICommHandler commHandler;
+    @Autowired
+    private MarketDataAPICommHandler marketDataAPICommHandler;
 
     private final ConcurrentHashMap<String, List<PQAnalysisResult>> cachedOpenBidsAnalysisResults = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, List<PQAnalysisResult>> cachedOpenAsksAnalysisResults = new ConcurrentHashMap<>();
@@ -124,7 +126,7 @@ public class PQAnalyzer {
     @Scheduled(initialDelay = 100, fixedDelay = 1000)
     public void loadFullOrderBook() {
         LOGGER.info("Running PQ Analysis");
-        List<String> products = List.of(MarketDataAPICommHandler.getMarketProducts());
+        List<String> products = List.of(marketDataAPICommHandler.getMarketProducts());
         for (String product : products) {
             LOGGER.info(product);
             this.cachedOpenBidsAnalysisResults.put(product, this.analyzeOpenBids(xs, product));
