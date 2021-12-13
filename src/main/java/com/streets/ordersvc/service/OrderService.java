@@ -1,5 +1,9 @@
 package com.streets.ordersvc.service;
 
+import com.streets.ordersvc.common.dao.models.Leg;
+import com.streets.ordersvc.common.dao.models.Order;
+import com.streets.ordersvc.common.dao.repositories.LegRepository;
+import com.streets.ordersvc.common.dao.repositories.OrderRepository;
 import com.streets.ordersvc.common.enums.OrderStatus;
 import com.streets.ordersvc.common.enums.Side;
 import com.streets.ordersvc.common.types.Tuple2;
@@ -7,13 +11,11 @@ import com.streets.ordersvc.communication.internal.mds.MarketDataAPICommHandler;
 import com.streets.ordersvc.communication.outbound.OrderAPICommHandler;
 import com.streets.ordersvc.communication.requests.OrderRequestBody;
 import com.streets.ordersvc.communication.responses.ExchangeDataPayload;
-import com.streets.ordersvc.common.dao.models.Leg;
-import com.streets.ordersvc.common.dao.models.Order;
-import com.streets.ordersvc.common.dao.repositories.LegRepository;
-import com.streets.ordersvc.common.dao.repositories.OrderRepository;
+import com.streets.ordersvc.lr.Payload;
 import com.streets.ordersvc.processing.strategy.analyzers.PQAnalyzer;
 import com.streets.ordersvc.processing.strategy.analyzers.TrendAnalyzer;
 import com.streets.ordersvc.processing.strategy.results.PQAnalysisResult;
+import com.streets.ordersvc.queue.RedisMessagePublisher;
 import com.streets.ordersvc.utils.PropertiesReader;
 import com.streets.ordersvc.validation.services.ValidationServiceImpl;
 import org.slf4j.Logger;
@@ -33,6 +35,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final LegRepository legRepository;
     private final OrderAPICommHandler orderAPICommHandler;
+    private final RedisMessagePublisher messagePublisher;
 
     private final String[] xs = {"EXCHANGE1", "EXCHANGE2"};
 
@@ -44,10 +47,11 @@ public class OrderService {
     private final TrendAnalyzer trendAnalyzer;
 
     @Autowired
-    public OrderService(OrderRepository repository, LegRepository legRepository, OrderAPICommHandler orderAPICommHandler, ValidationServiceImpl validationService, PQAnalyzer pqAnalyzer, TrendAnalyzer trendAnalyzer) {
+    public OrderService(OrderRepository repository, LegRepository legRepository, OrderAPICommHandler orderAPICommHandler, RedisMessagePublisher messagePublisher, ValidationServiceImpl validationService, PQAnalyzer pqAnalyzer, TrendAnalyzer trendAnalyzer) {
         this.orderRepository = repository;
         this.legRepository = legRepository;
         this.orderAPICommHandler = orderAPICommHandler;
+        this.messagePublisher = messagePublisher;
         this.validationService = validationService;
         this.pqAnalyzer = pqAnalyzer;
         this.trendAnalyzer = trendAnalyzer;
@@ -170,7 +174,19 @@ public class OrderService {
         }
         this.orderRepository.save(clientOrder);
         Optional<Order> savedOrder = this.orderRepository.findById(clientOrder.getId());
-        return savedOrder.orElse(null);
+
+        Order processedOrder = savedOrder.orElse(null);
+        if (processedOrder != null) {
+            // TODO: publish and forget
+            Payload reportPayload = new Payload();
+            reportPayload.setOrder(processedOrder);
+            reportPayload.setNumberOfLegs(processedOrder.getLegs().size());
+            reportPayload.setLegs(processedOrder.getLegs());
+            reportPayload.setPriceAnalysisResults(results);
+            reportPayload.setTotalOrderValue(processedOrder.getValue());
+            messagePublisher.publish(reportPayload);
+        }
+        return processedOrder;
     }
 
     public Order getOrderById(Long id) {
