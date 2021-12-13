@@ -15,6 +15,7 @@ import org.springframework.data.redis.serializer.GenericToStringSerializer;
 
 @Configuration
 @PropertySource("classpath:application.properties")
+@ComponentScan("com.streets.ordersvc")
 public class RedisConfig {
 
     @Bean
