@@ -19,7 +19,6 @@ import com.streets.ordersvc.processing.strategy.results.PQAnalysisResult;
 import com.streets.ordersvc.queue.RedisMessagePublisher;
 import com.streets.ordersvc.utils.PropertiesReader;
 import com.streets.ordersvc.validation.services.ValidationServiceImpl;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,15 +66,13 @@ public class OrderService {
         // TODO: make a request to the market data service to get the current market price
         List<ExchangeDataPayload> prices;
         try {
-            prices = Arrays.asList( marketDataAPICommHandler.getMarketDataByProduct(clientOrder.getProduct()));
+            prices = Arrays.asList(marketDataAPICommHandler.getMarketDataByProduct(clientOrder.getProduct()));
         } catch (RestClientException e) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "prices could not be found for the product: " + clientOrder.getProduct() + " due to " + e.getMessage());
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "prices could not be found for the product: " + clientOrder.getProduct() + " due to " + e.getMessage());
         }
 
         if (prices.size() == 0) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "prices could not be found for the product: " + clientOrder.getProduct());
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "prices could not be found for the product: " + clientOrder.getProduct());
         }
 
 
@@ -83,8 +80,7 @@ public class OrderService {
             // validate amount
             Tuple2<Boolean, String> amountValidationResult = validationService.isValidAmount(clientOrder);
             if (!amountValidationResult.getIsValid()) {
-                throw new ResponseStatusException(
-                        HttpStatus.PRECONDITION_FAILED, amountValidationResult.getMsg());
+                throw new ResponseStatusException(HttpStatus.PRECONDITION_FAILED, amountValidationResult.getMsg());
             }
         }
 
@@ -92,8 +88,7 @@ public class OrderService {
             // validate quantity
             Tuple2<Boolean, String> quantityValidationResult = validationService.isValidQuantity(clientOrder);
             if (!quantityValidationResult.getIsValid()) {
-                throw new ResponseStatusException(
-                        HttpStatus.PRECONDITION_FAILED, quantityValidationResult.getMsg());
+                throw new ResponseStatusException(HttpStatus.PRECONDITION_FAILED, quantityValidationResult.getMsg());
             }
         }
 
@@ -101,8 +96,7 @@ public class OrderService {
         // validate rate
         Tuple2<Boolean, String> rateValidationResult = validationService.isValidRate(clientOrder);
         if (!rateValidationResult.getIsValid()) {
-            throw new ResponseStatusException(
-                    HttpStatus.PRECONDITION_FAILED, rateValidationResult.getMsg());
+            throw new ResponseStatusException(HttpStatus.PRECONDITION_FAILED, rateValidationResult.getMsg());
         }
 
         if (clientOrder.getSide().equals(Side.BUY.toString())) {
@@ -197,8 +191,7 @@ public class OrderService {
                 // Displaying Java object into a JSON string
                 messagePublisher.publish(jsonStr);
                 System.out.println(jsonStr);
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 e.printStackTrace();
             }
 
@@ -211,8 +204,7 @@ public class OrderService {
         if (d.isPresent()) {
             return d.get();
         } else {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "no order exists with id: " + id);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "no order exists with id: " + id);
         }
     }
 
@@ -231,7 +223,7 @@ public class OrderService {
             List<Leg> orderLegs = this.legRepository.findByOrderId(order.getId());
             orderLegs.forEach(leg -> {
                 try {
-                    orderAPICommHandler.getOrderItemById(PropertiesReader.getProperty(leg.getXchange() + "_BASE_URL"), leg.getXid());
+                    orderAPICommHandler.g etOrderItemById(PropertiesReader.getProperty(leg.getXchange() + "_BASE_URL"), leg.getXid());
                 } catch (Exception e) {
                     leg.setStatus(OrderStatus.FULFILLED);
                     // TODO: send fulfilled orders to Elorm
@@ -248,5 +240,17 @@ public class OrderService {
     @Scheduled(initialDelay = 100, fixedDelay = 1000)
     public void processDeferredOrders() {
 
+    }
+
+    public Iterable<Order> listOrdersByStatusAndSide(OrderStatus status, String s) {
+        return this.orderRepository.getOrdersByStatusAndSide(status, s);
+    }
+
+    public Iterable<Order> listOrdersByStatus(OrderStatus valueOf) {
+        return this.orderRepository.getOrdersByStatus(valueOf);
+    }
+
+    public Iterable<Order> listOrdersBySide(String s) {
+        return this.orderRepository.getOrdersBySide(s);
     }
 }

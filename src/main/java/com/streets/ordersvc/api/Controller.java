@@ -4,6 +4,8 @@ package com.streets.ordersvc.api;
 import com.streets.ordersvc.api.requests.OrderRequestBody;
 import com.streets.ordersvc.common.dao.models.Leg;
 import com.streets.ordersvc.common.dao.models.Order;
+import com.streets.ordersvc.common.enums.OrderStatus;
+import com.streets.ordersvc.common.enums.Side;
 import com.streets.ordersvc.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("api/v1/orderservice")
@@ -55,12 +58,19 @@ public class Controller {
     @ResponseBody
     public List<Leg> getOrderLegsHandler(@PathVariable Long id) {
         return this.service.getOrderLegs(id);
-
     }
 
     @GetMapping("/users/{userId}")
     @ResponseBody
-    public Iterable<Order> listUserOrders(@PathVariable Long userId) {
+    public Iterable<Order> listUserOrders(@PathVariable Long userId, @RequestParam Optional<String> status, @RequestParam Optional<String> side) {
+        if (status.isPresent() && side.isPresent()){
+            return this.service.listOrdersByStatusAndSide(OrderStatus.valueOf(status.get()), side.get());
+        }else if (status.isPresent()){
+            return this.service.listOrdersByStatus(OrderStatus.valueOf(status.get()));
+        }else if(side.isPresent()){
+            return this.service.listOrdersBySide(side.get());
+        }
         return this.service.listUserOrders(userId);
     }
+
 }
