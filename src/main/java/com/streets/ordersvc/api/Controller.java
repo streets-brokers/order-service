@@ -5,6 +5,7 @@ import com.streets.ordersvc.api.requests.OrderRequestBody;
 import com.streets.ordersvc.common.dao.models.Leg;
 import com.streets.ordersvc.common.dao.models.Order;
 import com.streets.ordersvc.service.OrderService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -15,12 +16,9 @@ import java.util.List;
 @RestController
 @RequestMapping("api/v1/orderservice")
 public class Controller {
-    private final OrderService service;
 
     @Autowired
-    public Controller(OrderService orderService) {
-        this.service = orderService;
-    }
+    private OrderService service;
 
 
     @PostMapping("/orders")

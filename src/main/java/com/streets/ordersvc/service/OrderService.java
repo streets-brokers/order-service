@@ -1,5 +1,6 @@
 package com.streets.ordersvc.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.streets.ordersvc.common.dao.models.Leg;
 import com.streets.ordersvc.common.dao.models.Order;
 import com.streets.ordersvc.common.dao.repositories.LegRepository;
@@ -18,6 +19,7 @@ import com.streets.ordersvc.processing.strategy.results.PQAnalysisResult;
 import com.streets.ordersvc.queue.RedisMessagePublisher;
 import com.streets.ordersvc.utils.PropertiesReader;
 import com.streets.ordersvc.validation.services.ValidationServiceImpl;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,42 +29,45 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
 import java.util.*;
 
 @Service
 public class OrderService {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(OrderService.class);
-    private final OrderRepository orderRepository;
-    private final LegRepository legRepository;
-    private final OrderAPICommHandler orderAPICommHandler;
-    private final RedisMessagePublisher messagePublisher;
+
+    @Autowired
+    private OrderRepository orderRepository;
+
+    @Autowired
+    private LegRepository legRepository;
+    @Autowired
+    private OrderAPICommHandler orderAPICommHandler;
+    @Autowired
+    private RedisMessagePublisher messagePublisher;
+    @Autowired
+    private MarketDataAPICommHandler marketDataAPICommHandler;
 
     private final String[] xs = {"EXCHANGE1", "EXCHANGE2"};
 
 
-    private final ValidationServiceImpl validationService;
+    @Autowired
+    private ValidationServiceImpl validationService;
 
-
-    private final PQAnalyzer pqAnalyzer;
-    private final TrendAnalyzer trendAnalyzer;
 
     @Autowired
-    public OrderService(OrderRepository repository, LegRepository legRepository, OrderAPICommHandler orderAPICommHandler, RedisMessagePublisher messagePublisher, ValidationServiceImpl validationService, PQAnalyzer pqAnalyzer, TrendAnalyzer trendAnalyzer) {
-        this.orderRepository = repository;
-        this.legRepository = legRepository;
-        this.orderAPICommHandler = orderAPICommHandler;
-        this.messagePublisher = messagePublisher;
-        this.validationService = validationService;
-        this.pqAnalyzer = pqAnalyzer;
-        this.trendAnalyzer = trendAnalyzer;
-    }
+    private PQAnalyzer pqAnalyzer;
+    @Autowired
+    private TrendAnalyzer trendAnalyzer;
+
 
     public Order placeOrder(Order clientOrder) {
         clientOrder.setValue(clientOrder.getPrice() * clientOrder.getQuantity());
         // TODO: make a request to the market data service to get the current market price
         List<ExchangeDataPayload> prices;
         try {
-            prices = Arrays.asList(MarketDataAPICommHandler.getMarketDataByProduct(clientOrder.getProduct()));
+            prices = Arrays.asList( marketDataAPICommHandler.getMarketDataByProduct(clientOrder.getProduct()));
         } catch (RestClientException e) {
             throw new ResponseStatusException(
                     HttpStatus.NOT_FOUND, "prices could not be found for the product: " + clientOrder.getProduct() + " due to " + e.getMessage());
@@ -184,7 +189,19 @@ public class OrderService {
             reportPayload.setLegs(processedOrder.getLegs());
             reportPayload.setPriceAnalysisResults(results);
             reportPayload.setTotalOrderValue(processedOrder.getValue());
-            messagePublisher.publish(reportPayload);
+            // Creating Object of ObjectMapper define in Jackson API
+            ObjectMapper Obj = new ObjectMapper();
+            try {
+                // Converting the Java object into a JSON string
+                String jsonStr = Obj.writeValueAsString(reportPayload);
+                // Displaying Java object into a JSON string
+                messagePublisher.publish(jsonStr);
+                System.out.println(jsonStr);
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+
         }
         return processedOrder;
     }

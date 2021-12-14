@@ -1,24 +1,18 @@
 package com.streets.ordersvc.queue;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class RedisMessagePublisher implements MessagePublisher {
 
+    private final ChannelTopic topic;
     private final RedisTemplate<String, Object> redisTemplate;
 
-    private final ChannelTopic topic;
-
-    @Autowired
-    public RedisMessagePublisher(final RedisTemplate<String, Object> redisTemplate, final ChannelTopic topic) {
-        this.redisTemplate = redisTemplate;
-        this.topic = topic;
-    }
-
-    public void publish(final Object message) {
+    public void publish(String message) {
         redisTemplate.convertAndSend(topic.getTopic(), message);
     }
 }

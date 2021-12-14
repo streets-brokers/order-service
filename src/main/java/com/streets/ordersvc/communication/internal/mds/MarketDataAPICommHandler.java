@@ -1,24 +1,24 @@
 package com.streets.ordersvc.communication.internal.mds;
 
 import com.streets.ordersvc.communication.responses.ExchangeDataPayload;
-import com.streets.ordersvc.communication.responses.FullOrderBook;
 import com.streets.ordersvc.communication.responses.TrendResult;
 import com.streets.ordersvc.utils.PropertiesReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.List;
-import java.util.Map;
 
-
+@Service
 public class MarketDataAPICommHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(MarketDataAPICommHandler.class);
-    private static final RestTemplate restTemplate = new RestTemplate();
+    @Autowired
+    private RestTemplate restTemplate;
 
-    public static ExchangeDataPayload[] getMarketDataByProduct(String product) {
+
+    public  ExchangeDataPayload[] getMarketDataByProduct(String product) {
         String uri = PropertiesReader.getProperty("MARKET_DATA_SERVICE_URL") + "/products/" + product;
         LOGGER.info("Going to get the market data for product: ");
         try {
@@ -31,7 +31,7 @@ public class MarketDataAPICommHandler {
             throw new RestClientException(e.getMessage());
         }
     }
-    public static TrendResult[] getMarketTrendByProduct(String product) {
+    public TrendResult[] getMarketTrendByProduct(String product) {
         String uri = PropertiesReader.getProperty("MARKET_DATA_SERVICE_URL") + "/trends/" + product;
         LOGGER.info("Going to get the market data for product: ");
         try {
@@ -45,7 +45,7 @@ public class MarketDataAPICommHandler {
         }
     }
 
-    public static String[] getMarketProducts() {
+    public  String[] getMarketProducts() {
         String uri = PropertiesReader.getProperty("MARKET_DATA_SERVICE_URL") + "/products/tickers";
         LOGGER.info("loading product tickers: ");
         try {
