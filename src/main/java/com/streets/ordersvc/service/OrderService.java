@@ -217,6 +217,7 @@ public class OrderService {
                     orderAPICommHandler.getOrderItemById(PropertiesReader.getProperty(leg.getXchange() + "_BASE_URL"), leg.getXid());
                 } catch (Exception e) {
                     leg.setStatus(OrderStatus.FULFILLED);
+                    // TODO: send fulfilled orders to Elorm
                 }
             });
             if (orderLegs.stream().allMatch(x -> x.getStatus() == OrderStatus.FULFILLED)) {

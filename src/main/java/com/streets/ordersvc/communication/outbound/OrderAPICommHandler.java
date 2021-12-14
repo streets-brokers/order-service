@@ -66,22 +66,21 @@ public class OrderAPICommHandler {
 
     }
 
-    public OrderBookItem getOrderItemById(String baseURL, String id) {
+    public OrderBookItem getOrderItemById(String baseURL, String id) throws Exception {
         String uri = baseURL + "/" + apiKey + "/order/" + id;
         LOGGER.info("Getting specific order from: " + uri + "with id: " + id);
         List<FullOrderBook> books = null;
         try {
             return restTemplate.getForObject(uri, OrderBookItem.class);
         } catch (RestClientException e) {
-            LOGGER.info("Could not read order for id: " + id + "from:" + uri);
+            throw new RestClientException(e.getMessage());
         } catch (Exception e) {
-            LOGGER.info(e.getMessage());
+            throw new Exception(e.getMessage());
         }
-        return null;
     }
 
     // TODO: response needs to be a boolean so fix this shit
-    public void cancelOrder(String baseURL, String id) {
+    public void cancelOrder(String baseURL, String id) throws Exception {
         String uri = baseURL + "/" + apiKey + "/order/" + id;
 
         LOGGER.info("Cancelling an order from: " + uri + "with id:" + id);
@@ -89,8 +88,9 @@ public class OrderAPICommHandler {
             restTemplate.delete(uri, Boolean.class);
         } catch (RestClientException e) {
             LOGGER.info("Failed to cancel order with id:" + id);
+            throw new RestClientException(e.getMessage());
         } catch (Exception e) {
-            LOGGER.info(e.getMessage());
+            throw new Exception(e.getMessage());
         }
     }
 
