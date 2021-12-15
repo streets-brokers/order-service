@@ -28,10 +28,10 @@ public class ValidationServiceImpl implements ValidationService {
      */
     @Override
     public Tuple2<Boolean, String> isValidAmount(Order order) {
-        Double totalBalance = communicationService.getBalance(order.getClientId());
-        if (totalBalance < order.getValue()) {
-            return new Tuple2<>(false, "Not enough funds to fulfill order");
-        }
+//        Double totalBalance = communicationService.getBalance(order.getClientId());
+//        if (totalBalance < order.getValue()) {
+//            return new Tuple2<>(false, "Not enough funds to fulfill order");
+//        }
 
         return new Tuple2<>(true, "");
     }
